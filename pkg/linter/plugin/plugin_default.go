@@ -26,6 +26,7 @@ package plugin
 
 import "github.com/Drumato/promqlinter/pkg/linter"
 
+// Defaults returns the set of the default linter plugin.
 func Defaults() []linter.PromQLinterPlugin {
 	return []linter.PromQLinterPlugin{}
 }

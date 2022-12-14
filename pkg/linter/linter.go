@@ -30,13 +30,17 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
+// PromQLinter is the actual PromQL linter.
+// users can configure this struct for controlling the behaviors of the linter.
 type PromQLinter struct {
 	out     io.Writer
 	plugins []PromQLinterPlugin
 }
 
+// PromQLinterOption enables the initialization of the PromQLinter by FOP(Functional-Options-Pattern)
 type PromQLinterOption func(*PromQLinter)
 
+// New creates a new PromQLinter.
 func New(options ...PromQLinterOption) *PromQLinter {
 	pq := &PromQLinter{
 		plugins: make([]PromQLinterPlugin, 0),
@@ -48,6 +52,9 @@ func New(options ...PromQLinterOption) *PromQLinter {
 	return pq
 }
 
+// Execute starts the lint process.
+// the rawExpr parameter is a PromQL expression.
+// filter determines whether the reported diagnostics from plugin(s) are ignored.
 func (pq *PromQLinter) Execute(
 	rawExpr string,
 	filter DiagnosticLevel,
@@ -78,18 +85,23 @@ func (pq *PromQLinter) Execute(
 	return ok, nil
 }
 
+// WithPlugins sets the set of the linter plugin to the linter.
+// Note that this function should be called before WithPlugin().
+// Because this function updates the plugin set entirely.
 func WithPlugins(plugins ...PromQLinterPlugin) PromQLinterOption {
 	return func(pq *PromQLinter) {
 		pq.plugins = plugins
 	}
 }
 
+// WithPlugins appends the given plugin to the linter plugins.
 func WithPlugin(plugin PromQLinterPlugin) PromQLinterOption {
 	return func(pq *PromQLinter) {
 		pq.plugins = append(pq.plugins, plugin)
 	}
 }
 
+// WithOutStream sets the output stream to the linter.
 func WithOutStream(out io.Writer) PromQLinterOption {
 	return func(pq *PromQLinter) {
 		pq.out = out

@@ -26,6 +26,7 @@ package linter
 
 import "github.com/prometheus/prometheus/promql/parser"
 
+// PromQLinterPlugin is an interface that all linter plugin must implement.
 type PromQLinterPlugin interface {
 	// Name represents the name of the plugin.
 	// the name is used in the reporting message from the linter.

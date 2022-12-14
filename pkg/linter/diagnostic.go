@@ -31,31 +31,37 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
+// Diagnostics holds the set of the linter diagnostic.
 type Diagnostics struct {
 	items []Diagnostic
 }
 
+// NewDiagnostics creates a new Diagnostics.
 func NewDiagnostics() *Diagnostics {
 	return &Diagnostics{
 		items: make([]Diagnostic, 0),
 	}
 }
 
+// Add appends the given diagnostic to the set.
 func (ds *Diagnostics) Add(d Diagnostic) {
 	ds.items = append(ds.items, d)
 }
 
+// Diagnostic is the detailed message from linter plugin from its rules.
 type Diagnostic struct {
 	level    DiagnosticLevel
 	position parser.PositionRange
 	message  string
 }
 
+// Report outputs the diagnostic message to the given io.Writer.
 func (d *Diagnostic) Report(out io.Writer) error {
 	_, err := fmt.Fprintf(out, "[%s] (%d..%d) %s\n", d.level.String(), d.position.Start, d.position.End, d.message)
 	return err
 }
 
+// NewDiagnostic creates a new diagnostic.
 func NewDiagnostic(
 	level DiagnosticLevel,
 	position parser.PositionRange,
@@ -64,11 +70,15 @@ func NewDiagnostic(
 	return Diagnostic{level, position, message}
 }
 
+// DiagnosticLevel represents the level of a diagnostic.
 type DiagnosticLevel uint
 
 const (
+	// DiagnosticLevelInfo represents the "information" level.
 	DiagnosticLevelInfo DiagnosticLevel = iota
+	// DiagnosticLevelWarning represents the "warning" level.
 	DiagnosticLevelWarning
+	// DiagnosticLevelError represents the "error" level.
 	DiagnosticLevelError
 )
 

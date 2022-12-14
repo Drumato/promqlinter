@@ -58,6 +58,7 @@ const (
 	`
 )
 
+// NewCLI initializez the root application of promqlinter.
 func NewCLI() *cobra.Command {
 	c := &cobra.Command{
 		Use:     "promqlinter",
@@ -106,6 +107,7 @@ func run(cmd *cobra.Command, args []string) error {
 	return runK8sManifestsMode(cmd, args, filter)
 }
 
+// runExprFromStdinMode runs the linter process with the given input from stdin.
 func runExprFromStdinMode(
 	cmd *cobra.Command,
 	args []string,
@@ -129,6 +131,7 @@ func runExprFromStdinMode(
 	return nil
 }
 
+// runK8sManifestsMode runs the lint process with the k8s manifests.
 func runK8sManifestsMode(
 	cmd *cobra.Command,
 	args []string,
@@ -139,9 +142,14 @@ func runK8sManifestsMode(
 		linter.WithPlugins(plugin.Defaults()...),
 	)
 
-	manifests, err := searchAllTargetManifests(GlobalK8sManifestsRO, GlobalRecursiveRO)
-	if err != nil {
-		return err
+	var manifests []string
+	if GlobalRecursiveRO {
+		manifests = GlobalK8sManifestsRO
+	} else {
+		var err error
+		if manifests, err = searchAllTargetManifests(GlobalK8sManifestsRO); err != nil {
+			return err
+		}
 	}
 
 	for _, manifestPath := range manifests {
@@ -180,17 +188,14 @@ func runK8sManifestsMode(
 	return nil
 }
 
+// searchAlTargetManifests searches the k8s manifests recursively.
 func searchAllTargetManifests(
 	inputPathsFlagValue []string,
-	recursive bool,
 ) ([]string, error) {
-	if !recursive {
-		return inputPathsFlagValue, nil
-	}
-
 	manifests := make([]string, 0)
 	queue := inputPathsFlagValue
 
+	// Breadth-First-Search
 	for len(queue) != 0 {
 		dir := queue[0]
 		queue = queue[1:]
@@ -201,14 +206,15 @@ func searchAllTargetManifests(
 		}
 
 		for _, entry := range entries {
+			entryPath := path.Join(dir, entry.Name())
 			if entry.IsDir() {
-				queue = append(queue, fmt.Sprintf("%s/%s", dir, entry.Name()))
+				queue = append(queue, entryPath)
 			} else {
 				if path.Ext(entry.Name()) != ".yaml" && path.Ext(entry.Name()) != ".yml" {
 					continue
 				}
 
-				manifests = append(manifests, fmt.Sprintf("%s/%s", dir, entry.Name()))
+				manifests = append(manifests, entryPath)
 			}
 		}
 	}
