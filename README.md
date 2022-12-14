@@ -12,6 +12,6 @@ A PromQL parser/type-checker/linter in GitHub Actions/CLI
 
 ## Example usage
 
-uses: drumato/promqlinter@v0.1.0
+uses: drumato/promqlinter@v0.1.1
 with:
   source_directory: manifest/
