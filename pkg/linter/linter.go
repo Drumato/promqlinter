@@ -38,7 +38,9 @@ type PromQLinter struct {
 type PromQLinterOption func(*PromQLinter)
 
 func New(options ...PromQLinterOption) *PromQLinter {
-	pq := &PromQLinter{}
+	pq := &PromQLinter{
+		plugins: make([]PromQLinterPlugin, 0),
+	}
 	for _, opt := range options {
 		opt(pq)
 	}
