@@ -27,16 +27,22 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 
 	"github.com/Drumato/promqlinter/pkg/linter"
 	"github.com/Drumato/promqlinter/pkg/linter/plugin"
 	"github.com/spf13/cobra"
+
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 var (
-	GlobalK8sManifestRO string
-	GlobalRecursiveRO   bool
+	GlobalK8sManifestsRO          []string
+	GlobalRecursiveRO             bool
+	GlobalDiagnosticLevelFilterRO string
 )
 
 const (
@@ -60,26 +66,56 @@ func NewCLI() *cobra.Command {
 		RunE:    run,
 	}
 
-	c.Flags().StringVarP(&GlobalK8sManifestRO, "--input-k8s-manifest", "i", "", "the target PrometheusRule resource")
-	c.Flags().BoolVarP(&GlobalRecursiveRO, "--recursive", "r", false, "determine whether the manifest search process should be recursive")
+	c.Flags().StringVarP(
+		&GlobalDiagnosticLevelFilterRO,
+		"level-filter",
+		"f",
+		"error",
+		"the diagnostic level filter(info/warning/error)",
+	)
+
+	c.Flags().StringSliceVarP(
+		&GlobalK8sManifestsRO,
+		"input-k8s-manifest",
+		"i",
+		[]string{},
+		"the target PrometheusRule resource",
+	)
+
+	c.Flags().BoolVarP(
+		&GlobalRecursiveRO,
+		"recursive",
+		"r",
+		false,
+		"determine whether the manifest search process should be recursive",
+	)
 
 	return c
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	if GlobalK8sManifestRO == "" {
-		return runExprFromStdinMode(cmd, args)
+	filter, err := determineLevelFilter(GlobalDiagnosticLevelFilterRO)
+	if err != nil {
+		return err
 	}
 
-	return nil
+	if len(GlobalK8sManifestsRO) == 0 {
+		return runExprFromStdinMode(cmd, args, filter)
+	}
+
+	return runK8sManifestsMode(cmd, args, filter)
 }
 
-func runExprFromStdinMode(cmd *cobra.Command, args []string) error {
+func runExprFromStdinMode(
+	cmd *cobra.Command,
+	args []string,
+	filter linter.DiagnosticLevel,
+) error {
 	scanner := bufio.NewScanner(os.Stdin)
 	l := linter.New(linter.WithPlugins(plugin.Defaults()...))
 
 	for scanner.Scan() {
-		ok, err := l.Execute(scanner.Text(), linter.DiagnosticLevelInfo)
+		ok, err := l.Execute(scanner.Text(), filter)
 		if err != nil {
 			return err
 		}
@@ -89,5 +125,115 @@ func runExprFromStdinMode(cmd *cobra.Command, args []string) error {
 
 	}
 
+	fmt.Println("ok")
 	return nil
+}
+
+func runK8sManifestsMode(
+	cmd *cobra.Command,
+	args []string,
+	filter linter.DiagnosticLevel,
+) error {
+	l := linter.New(
+		linter.WithOutStream(os.Stdout),
+		linter.WithPlugins(plugin.Defaults()...),
+	)
+
+	manifests, err := searchAllTargetManifests(GlobalK8sManifestsRO, GlobalRecursiveRO)
+	if err != nil {
+		return err
+	}
+
+	for _, manifestPath := range manifests {
+		f, err := os.Open(manifestPath)
+		if err != nil {
+			return err
+		}
+		out, err := ioutil.ReadAll(f)
+		if err != nil {
+			return err
+		}
+
+		if err := f.Close(); err != nil {
+			return err
+		}
+
+		ruleManifest := monitoringv1.PrometheusRule{}
+		if err := yaml.Unmarshal(out, &ruleManifest); err != nil {
+			return err
+		}
+
+		for _, rg := range ruleManifest.Spec.Groups {
+			for _, rule := range rg.Rules {
+				ok, err := l.Execute(rule.Expr.StrVal, filter)
+				if err != nil {
+					return err
+				}
+				if !ok {
+					return fmt.Errorf("some of linter plugins detects the filtered rules")
+				}
+			}
+		}
+	}
+
+	fmt.Println("ok")
+	return nil
+}
+
+func searchAllTargetManifests(
+	inputPathsFlagValue []string,
+	recursive bool,
+) ([]string, error) {
+	if !recursive {
+		return inputPathsFlagValue, nil
+	}
+
+	manifests := make([]string, 0)
+	queue := inputPathsFlagValue
+
+	for len(queue) != 0 {
+		dir := queue[0]
+		queue = queue[1:]
+
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, entry := range entries {
+			if entry.IsDir() {
+				queue = append(queue, fmt.Sprintf("%s/%s", dir, entry.Name()))
+			} else {
+				if path.Ext(entry.Name()) != ".yaml" && path.Ext(entry.Name()) != ".yml" {
+					continue
+				}
+
+				manifests = append(manifests, fmt.Sprintf("%s/%s", dir, entry.Name()))
+			}
+		}
+	}
+
+	return manifests, nil
+}
+
+func determineLevelFilter(filter string) (linter.DiagnosticLevel, error) {
+	const (
+		lInfo    = "info"
+		lWarning = "warning"
+		lError   = "error"
+	)
+	if filter != lInfo && filter != lWarning && filter != lError {
+		return linter.DiagnosticLevelInfo, fmt.Errorf("--level-filter must be one of info/warning/error")
+	}
+
+	switch filter {
+	case lInfo:
+		return linter.DiagnosticLevelInfo, nil
+	case lWarning:
+		return linter.DiagnosticLevelWarning, nil
+	case lError:
+		return linter.DiagnosticLevelError, nil
+	default:
+		panic("unreachable")
+	}
 }

@@ -1,0 +1,19 @@
+name: promqlinter - A PromQL linter with k8s manifest/etc YAMLs.
+author: Drumato
+description: install and run promqlinter 
+inputs:
+  root_dir:
+    description: "the target directory promqlinter checks"
+    required: false
+    default: "."
+outputs:
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - "-r"
+    - "-i"
+    - ${{ inputs.root_dir }}
+branding:
+  icon: 'git-pull-request'
+  color: 'blue'
