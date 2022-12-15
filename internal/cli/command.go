@@ -22,15 +22,38 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package plugin
+package cli
 
-import "github.com/Drumato/promqlinter/pkg/linter"
+import (
+	"github.com/spf13/cobra"
+)
 
-// Defaults returns the set of the default linter plugin.
-func Defaults(
-	deniedLabels string,
-) []linter.PromQLinterPlugin {
-	return []linter.PromQLinterPlugin{
-		NewDeniedLabelPlugin(deniedLabels),
+const (
+	cliExample = `
+	# lint a raw PromQL expression that is given from stdin
+	echo -n 'http_requests_total{job="prometheus"}' | promqlinter
+
+	# lint a raw PromQL expression in the PrometheusRule manifest
+	promqlinter -i ./examples/manifests/sample.yaml
+
+	# lint each raw PromQL expression in the PrometheusRule manifests in ./manifest
+	promqlinter -r -i ./examples/manifests/
+
+	# configure denied-label plugin
+	# that denies <vector{job="node_exporter", instance=".*"}
+	promqlinter -r -i ./examples/manifests/ --denied-labels "job %PAIR% node_exporter,instance %PAIR% .*"
+	`
+)
+
+// NewCLI initializez the root application of promqlinter.
+func NewCLI() *cobra.Command {
+	c := &cobra.Command{
+		Use:     "promqlinter",
+		Short:   "A PromQL linter with CLI/GitHub Actions",
+		Example: cliExample,
+		RunE:    run,
 	}
+
+	defineCLIFlags(c)
+	return c
 }

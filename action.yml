@@ -6,6 +6,12 @@ inputs:
     description: "the target directory promqlinter checks"
     required: false
     default: "."
+  denied_labels:
+    description: |
+      the not-allowed label-matchers '<label> %PAIR% <value-pattern-regexp>' separated by comma.
+      like 'job %PAIR% node_exporter,instance %PAIR% .*'
+    required: false
+    default: ""
 outputs:
 runs:
   using: 'docker'
@@ -14,6 +20,8 @@ runs:
     - "-r"
     - "-i"
     - ${{ inputs.root_dir }}
+    - "--denied-labels"
+    - ${{ inputs.denied_labels }}
 branding:
   icon: 'git-pull-request'
   color: 'blue'

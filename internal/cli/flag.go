@@ -22,15 +22,48 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package plugin
+package cli
 
-import "github.com/Drumato/promqlinter/pkg/linter"
+import "github.com/spf13/cobra"
 
-// Defaults returns the set of the default linter plugin.
-func Defaults(
-	deniedLabels string,
-) []linter.PromQLinterPlugin {
-	return []linter.PromQLinterPlugin{
-		NewDeniedLabelPlugin(deniedLabels),
-	}
+var (
+	GlobalK8sManifestRO           string
+	GlobalRecursiveRO             bool
+	GlobalDiagnosticLevelFilterRO string
+	GlobalDeniedLabelsRO          string
+)
+
+func defineCLIFlags(c *cobra.Command) {
+	c.Flags().StringVarP(
+		&GlobalDeniedLabelsRO,
+		"denied-labels",
+		"d",
+		"",
+		"the denied labels",
+	)
+
+	c.Flags().StringVarP(
+		&GlobalDiagnosticLevelFilterRO,
+		"level-filter",
+		"f",
+		"error",
+		"the diagnostic level filter(info/warning/error)",
+	)
+
+	c.Flags().StringVarP(
+		&GlobalK8sManifestRO,
+		"input-k8s-manifest",
+		"i",
+		"",
+		"the target PrometheusRule resource",
+	)
+
+	c.Flags().BoolVarP(
+		&GlobalRecursiveRO,
+		"recursive",
+		"r",
+		false,
+		"determine whether the manifest search process should be recursive",
+	)
+
 }

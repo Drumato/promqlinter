@@ -27,73 +27,17 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"strings"
 
 	"github.com/Drumato/promqlinter/pkg/linter"
 	"github.com/Drumato/promqlinter/pkg/linter/plugin"
-	"github.com/spf13/cobra"
-
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"k8s.io/apimachinery/pkg/util/yaml"
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
-
-var (
-	GlobalK8sManifestsRO          []string
-	GlobalRecursiveRO             bool
-	GlobalDiagnosticLevelFilterRO string
-)
-
-const (
-	cliExample = `
-	# lint a raw PromQL expression that is given from stdin
-	echo -n 'http_requests_total{job="prometheus"}' | promqlinter
-
-	# lint a raw PromQL expression in the PrometheusRule manifest
-	promqlinter -i manifest/sample.yaml
-
-	# lint each raw PromQL expression in the PrometheusRule manifests in ./manifest
-	promqlinter -r -i ./manifest/
-	`
-)
-
-// NewCLI initializez the root application of promqlinter.
-func NewCLI() *cobra.Command {
-	c := &cobra.Command{
-		Use:     "promqlinter",
-		Short:   "A PromQL linter with CLI/GitHub Actions",
-		Example: cliExample,
-		RunE:    run,
-	}
-
-	c.Flags().StringVarP(
-		&GlobalDiagnosticLevelFilterRO,
-		"level-filter",
-		"f",
-		"error",
-		"the diagnostic level filter(info/warning/error)",
-	)
-
-	c.Flags().StringSliceVarP(
-		&GlobalK8sManifestsRO,
-		"input-k8s-manifest",
-		"i",
-		[]string{},
-		"the target PrometheusRule resource",
-	)
-
-	c.Flags().BoolVarP(
-		&GlobalRecursiveRO,
-		"recursive",
-		"r",
-		false,
-		"determine whether the manifest search process should be recursive",
-	)
-
-	return c
-}
 
 func run(cmd *cobra.Command, args []string) error {
 	filter, err := determineLevelFilter(GlobalDiagnosticLevelFilterRO)
@@ -101,7 +45,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(GlobalK8sManifestsRO) == 0 {
+	if len(GlobalK8sManifestRO) == 0 {
 		return runExprFromStdinMode(cmd, args, filter)
 	}
 
@@ -109,13 +53,10 @@ func run(cmd *cobra.Command, args []string) error {
 }
 
 // runExprFromStdinMode runs the linter process with the given input from stdin.
-func runExprFromStdinMode(
-	cmd *cobra.Command,
-	args []string,
-	filter linter.DiagnosticLevel,
-) error {
+func runExprFromStdinMode(cmd *cobra.Command, args []string, filter linter.DiagnosticLevel) error {
+	l := linter.New(linter.WithPlugins(plugin.Defaults(GlobalDeniedLabelsRO)...))
+
 	scanner := bufio.NewScanner(os.Stdin)
-	l := linter.New(linter.WithPlugins(plugin.Defaults()...))
 
 	lines := []string{}
 	for scanner.Scan() {
@@ -143,15 +84,15 @@ func runK8sManifestsMode(
 ) error {
 	l := linter.New(
 		linter.WithOutStream(os.Stdout),
-		linter.WithPlugins(plugin.Defaults()...),
+		linter.WithPlugins(plugin.Defaults(GlobalDeniedLabelsRO)...),
 	)
 
 	var manifests []string
-	if GlobalRecursiveRO {
-		manifests = GlobalK8sManifestsRO
+	if !GlobalRecursiveRO {
+		manifests = []string{GlobalK8sManifestRO}
 	} else {
 		var err error
-		if manifests, err = searchAllTargetManifests(GlobalK8sManifestsRO); err != nil {
+		if manifests, err = searchAllTargetManifests(GlobalK8sManifestRO); err != nil {
 			return err
 		}
 	}
@@ -161,7 +102,7 @@ func runK8sManifestsMode(
 		if err != nil {
 			return err
 		}
-		out, err := ioutil.ReadAll(f)
+		out, err := io.ReadAll(f)
 		if err != nil {
 			return err
 		}
@@ -194,10 +135,10 @@ func runK8sManifestsMode(
 
 // searchAlTargetManifests searches the k8s manifests recursively.
 func searchAllTargetManifests(
-	inputPathsFlagValue []string,
+	inputPathsFlagValue string,
 ) ([]string, error) {
 	manifests := make([]string, 0)
-	queue := inputPathsFlagValue
+	queue := []string{inputPathsFlagValue}
 
 	// Breadth-First-Search
 	for len(queue) != 0 {

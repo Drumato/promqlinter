@@ -56,7 +56,9 @@ type Diagnostic struct {
 }
 
 // Report outputs the diagnostic message to the given io.Writer.
-func (d *Diagnostic) Report(out io.Writer) error {
+func (d *Diagnostic) Report(
+	out io.Writer,
+) error {
 	_, err := fmt.Fprintf(out, "[%s] (%d..%d) %s\n", d.level.String(), d.position.Start, d.position.End, d.message)
 	return err
 }
