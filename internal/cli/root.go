@@ -30,6 +30,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/Drumato/promqlinter/pkg/linter"
 	"github.com/Drumato/promqlinter/pkg/linter/plugin"
@@ -116,15 +117,18 @@ func runExprFromStdinMode(
 	scanner := bufio.NewScanner(os.Stdin)
 	l := linter.New(linter.WithPlugins(plugin.Defaults()...))
 
+	lines := []string{}
 	for scanner.Scan() {
-		ok, err := l.Execute(scanner.Text(), filter)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return fmt.Errorf("some of linter plugins detects the filtered rules")
-		}
+		lines = append(lines, scanner.Text())
+	}
+	expr := strings.Join(lines, "\n")
 
+	ok, err := l.Execute(expr, filter)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("some of linter plugins detects the filtered rules")
 	}
 
 	fmt.Println("ok")

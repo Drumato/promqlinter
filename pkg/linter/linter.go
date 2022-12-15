@@ -33,7 +33,8 @@ import (
 // PromQLinter is the actual PromQL linter.
 // users can configure this struct for controlling the behaviors of the linter.
 type PromQLinter struct {
-	out     io.Writer
+	outStream io.Writer
+
 	plugins []PromQLinterPlugin
 }
 
@@ -60,7 +61,6 @@ func (pq *PromQLinter) Execute(
 	filter DiagnosticLevel,
 ) (bool, error) {
 	ok := true
-
 	expr, err := parser.ParseExpr(rawExpr)
 	if err != nil {
 		return false, err
@@ -74,7 +74,7 @@ func (pq *PromQLinter) Execute(
 
 		for _, d := range ds.items {
 			if d.level >= filter {
-				if err := d.Report(pq.out); err != nil {
+				if err := d.Report(pq.outStream); err != nil {
 					return false, err
 				}
 				ok = false
@@ -104,6 +104,6 @@ func WithPlugin(plugin PromQLinterPlugin) PromQLinterOption {
 // WithOutStream sets the output stream to the linter.
 func WithOutStream(out io.Writer) PromQLinterOption {
 	return func(pq *PromQLinter) {
-		pq.out = out
+		pq.outStream = out
 	}
 }
