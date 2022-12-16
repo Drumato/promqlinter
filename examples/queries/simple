@@ -1,1 +1,3 @@
-http_requests_total{job="prometheus",group="canary"}[5m]
+sum without(cpu) (
+    rate(node_cpu_seconds_total{mode="iowait"}[5m])
+)

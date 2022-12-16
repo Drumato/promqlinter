@@ -27,7 +27,9 @@ package linter
 import (
 	"fmt"
 	"io"
+	"strings"
 
+	"github.com/Drumato/promqlinter/pkg/promqlutil"
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
@@ -42,7 +44,7 @@ type Diagnostic interface {
 	// Level returns the diagnostic level.
 	Level() DiagnosticLevel
 	// Report outputs the lint result to the out stream.
-	Report(out io.Writer) error
+	Report(rawExpr *string, out io.Writer) error
 }
 
 // diagnostics is the default implementation of Diagnostics.
@@ -81,10 +83,34 @@ func (d *diagnostic) Level() DiagnosticLevel {
 
 // Report implements Diagnostic.
 func (d *diagnostic) Report(
+	rawExpr *string,
 	out io.Writer,
 ) error {
-	_, err := fmt.Fprintf(out, "[%s] (%d..%d) %s\n", d.level.String(), d.position.Start, d.position.End, d.message)
-	return err
+	pos2d := promqlutil.ConvertPosTo2d(rawExpr, d.position)
+	topMsg := fmt.Sprintf("[%s] %s %s", d.level.String(), pos2d, d.message)
+	if _, err := fmt.Fprintln(out, topMsg); err != nil {
+		return err
+	}
+
+	// prefix <- "L1| "
+	prefix := fmt.Sprintf("L%d| ", pos2d.Line)
+
+	// line <- "L1| <the contents at the line>"
+	line := strings.Split(*rawExpr, "\n")[pos2d.Line-1]
+	if _, err := fmt.Fprintf(out, "%s%s\n", prefix, line); err != nil {
+		return err
+	}
+
+	arrowSpaces := strings.Repeat(" ", len(prefix)+pos2d.Column-1)
+	arrow := strings.Repeat("^", int(d.position.End)-int(d.position.Start))
+	// arrow <- "<prefix-len><^ * <content-length>>"
+	arrow = fmt.Sprintf("%s%s", arrowSpaces, arrow)
+
+	if _, err := fmt.Fprintf(out, "%s %s\n", arrow, d.message); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // NewDiagnostic creates a new default diagnostic.

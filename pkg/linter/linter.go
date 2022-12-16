@@ -74,7 +74,7 @@ func (pq *PromQLinter) Execute(
 
 		for _, d := range ds.Slice() {
 			if d.Level() >= filter {
-				if err := d.Report(pq.outStream); err != nil {
+				if err := d.Report(&rawExpr, pq.outStream); err != nil {
 					return false, err
 				}
 				ok = false
