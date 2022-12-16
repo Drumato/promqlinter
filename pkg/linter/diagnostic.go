@@ -33,19 +33,24 @@ import (
 
 // Diagnostics holds the set of the linter diagnostic.
 type Diagnostics interface {
+	// Slice returns the list of the diagnostic.
 	Slice() []Diagnostic
 }
 
+// Diagnostic is the detailed message from linter plugin's rules.
 type Diagnostic interface {
+	// Level returns the diagnostic level.
 	Level() DiagnosticLevel
+	// Report outputs the lint result to the out stream.
 	Report(out io.Writer) error
 }
 
+// diagnostics is the default implementation of Diagnostics.
 type diagnostics struct {
 	items []Diagnostic
 }
 
-// NewDiagnostics creates a new Diagnostics.
+// NewDiagnostics creates a new default Diagnostics.
 func NewDiagnostics() *diagnostics {
 	return &diagnostics{
 		items: make([]Diagnostic, 0),
@@ -62,19 +67,19 @@ func (d *diagnostics) Slice() []Diagnostic {
 	return []Diagnostic(d.items)
 }
 
-// diagnostic is the detailed message from linter plugin from its rules.
+// diagnostic is the default implementation of Diagnostic.
 type diagnostic struct {
 	level    DiagnosticLevel
 	position parser.PositionRange
 	message  string
 }
 
-// Report outputs the diagnostic message to the given io.Writer.
+// Level implements Diagnostic.
 func (d *diagnostic) Level() DiagnosticLevel {
 	return d.level
 }
 
-// Report outputs the diagnostic message to the given io.Writer.
+// Report implements Diagnostic.
 func (d *diagnostic) Report(
 	out io.Writer,
 ) error {
@@ -82,7 +87,7 @@ func (d *diagnostic) Report(
 	return err
 }
 
-// NewDiagnostic creates a new diagnostic.
+// NewDiagnostic creates a new default diagnostic.
 func NewDiagnostic(
 	level DiagnosticLevel,
 	position parser.PositionRange,

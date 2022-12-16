@@ -37,7 +37,10 @@ const (
 	baseMetricNamePlaceholder = "__name__"
 )
 
+// LabelName is the name of the label.
 type LabelName string
+
+// LabelValuePattern represents an regex pattern.
 type LabelValuePattern string
 
 type deniedLabel struct {
@@ -51,6 +54,8 @@ func (d *deniedLabel) Execute(expr parser.Expr) (linter.Diagnostics, error) {
 		switch node := n.(type) {
 		case *parser.VectorSelector:
 			for _, lm := range node.LabelMatchers {
+				// node.LabelMatchers contains the base name of the instance vector.
+				// e.g., http_requests_total{job="prometheus"} contains __name__ = prometheus.
 				if lm.Name == baseMetricNamePlaceholder {
 					continue
 				}
@@ -90,6 +95,7 @@ func (*deniedLabel) Name() string {
 	return "denied-labels"
 }
 
+// NewDeniedLabelPlugin creates a denied-labels plugin.
 func NewDeniedLabelPlugin(
 	deniedLabels string,
 ) linter.PromQLinterPlugin {
