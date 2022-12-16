@@ -6,7 +6,7 @@ A PromQL parser/type-checker/linter in GitHub Actions/CLI
 
 ## Features
 
-- syntax/type check with [prometheus/prometheus/promql/parser](https://pkg.go.dev/github.com/prometheus/prometheus/promql/parser#Inspect)
+- syntax/type check with [prometheus/prometheus/promql/parser](https://pkg.go.dev/github.com/prometheus/prometheus/promql/parser)
 - Use the default lint rules in GitHub Actions
   - defaults/denied-labels
   - defaults/denied-metric(WIP)
