@@ -62,8 +62,20 @@ func (pq *PromQLinter) Execute(
 ) (bool, error) {
 	ok := true
 	expr, err := parser.ParseExpr(rawExpr)
-	if err != nil {
-		return false, err
+	parserDs := convertParseErrorToDiagnostics(err)
+	if parserDs != nil {
+		for _, d := range parserDs.Slice() {
+			if d.Level() >= filter {
+				if err := d.Report(&rawExpr, pq.outStream); err != nil {
+					return false, err
+				}
+				ok = false
+			}
+		}
+	}
+	// if any parse errors are found, we quickly quit the lint process.
+	if !ok {
+		return false, nil
 	}
 
 	for _, p := range pq.plugins {

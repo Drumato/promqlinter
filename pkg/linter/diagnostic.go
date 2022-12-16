@@ -148,3 +148,26 @@ func (d DiagnosticLevel) String() string {
 		return ""
 	}
 }
+
+func convertParseErrorToDiagnostics(err error) Diagnostics {
+	if err == nil {
+		return nil
+	}
+
+	errs, ok := err.(parser.ParseErrors)
+	if !ok {
+		return nil
+	}
+
+	ds := NewDiagnostics()
+	for _, e := range errs {
+		d := NewDiagnostic(
+			DiagnosticLevelError,
+			e.PositionRange,
+			e.Error(),
+		)
+		ds.Add(d)
+	}
+
+	return ds
+}

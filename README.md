@@ -2,18 +2,38 @@
 
 A PromQL parser/type-checker/linter in GitHub Actions/CLI
 
-## Inputs
+## GitHub Actions
 
-## `source_directory`
+See [Using promqlinter in GitHub Actions](doc/github-actions.md).
 
-**Required** The directory that the linter recursively searches the k8s manifests.
+## CLI
 
-## Outputs
+```bash
+$ ./bin/promqlinter -h
+A PromQL linter with CLI/GitHub Actions
 
-## Example usage
+Usage:
+  promqlinter [flags]
 
-```yaml
-uses: drumato/promqlinter@v0.1.1
-with:
-  source_directory: manifest/
+Examples:
+
+        # lint a raw PromQL expression that is given from stdin
+        echo -n 'http_requests_total{job="prometheus"}' | promqlinter
+
+        # lint a raw PromQL expression in the PrometheusRule manifest
+        promqlinter -i ./examples/manifests/sample.yaml
+
+        # lint each raw PromQL expression in the PrometheusRule manifests in ./manifest
+        promqlinter -r -i ./examples/manifests/
+
+        # configure denied-label plugin
+        # e.g., this example denies <vector{job="node_exporter", instance=".*"}
+        promqlinter -r -i ./examples/manifests/ --denied-labels "job %PAIR% node_exporter,instance %PAIR% .*"
+
+Flags:
+  -d, --denied-labels string        the denied labels
+  -h, --help                        help for promqlinter
+  -i, --input-k8s-manifest string   the target PrometheusRule resource
+  -f, --level-filter string         the diagnostic level filter(info/warning/error) (default "error")
+  -r, --recursive                   determine whether the manifest search process should be recursive
 ```
