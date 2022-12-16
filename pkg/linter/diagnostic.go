@@ -127,7 +127,7 @@ func (d *diagnostic) coloredReport(
 	out io.Writer,
 	pos2d *promqlutil.Source2dPosition,
 ) error {
-	topMsg := fmt.Sprintf("%s<[%s] %s %s", pluginName, d.level.coloredString(), pos2d, d.message)
+	topMsg := fmt.Sprintf("%s<[%s] %s", pluginName, d.level.coloredString(), pos2d)
 	if _, err := fmt.Fprintln(out, topMsg); err != nil {
 		return err
 	}
