@@ -4,7 +4,7 @@ description: install and run promqlinter
 inputs:
   root_dir:
     description: "the target directory promqlinter checks"
-    required: false
+    required: true 
     default: "."
   ansi_colors:
     description: "determine whether the promqlinter's reports are colored with ANSI codes"

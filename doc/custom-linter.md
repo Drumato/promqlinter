@@ -45,13 +45,13 @@ func main() {
 		linter.WithOutStream(os.Stdout),
 	)
 
-	ok, err := l.Execute(sampleExpr, linter.DiagnosticLevelWarning)
+	result, err := l.Execute(sampleExpr, linter.DiagnosticLevelWarning)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		os.Exit(1)
 	}
 
-	if !ok {
+	if result.Failed() {
 		os.Exit(1)
 	}
 }
