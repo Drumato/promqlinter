@@ -6,6 +6,10 @@ inputs:
     description: "the target directory promqlinter checks"
     required: false
     default: "."
+  ansi_colors:
+    description: "determine whether the promqlinter's reports are colored with ANSI codes"
+    default: "false"
+    required: false
   denied_labels:
     description: |
       the not-allowed label-matchers '<label> %PAIR% <value-pattern-regexp>' separated by comma.
@@ -17,6 +21,8 @@ runs:
   using: 'docker'
   image: 'Dockerfile'
   args:
+    - "-c"
+    - ${{ inputs.ansi_colors }}
     - "-r"
     - "-i"
     - ${{ inputs.root_dir }}

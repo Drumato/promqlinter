@@ -36,6 +36,7 @@ type PromQLinter struct {
 	outStream io.Writer
 
 	plugins []PromQLinterPlugin
+	colored bool
 }
 
 // PromQLinterOption enables the initialization of the PromQLinter by FOP(Functional-Options-Pattern)
@@ -62,11 +63,11 @@ func (pq *PromQLinter) Execute(
 ) (bool, error) {
 	ok := true
 	expr, err := parser.ParseExpr(rawExpr)
-	parserDs := convertParseErrorToDiagnostics(err)
+	parserDs := convertParseErrorToDiagnostics(err, pq.colored)
 	if parserDs != nil {
 		for _, d := range parserDs.Slice() {
 			if d.Level() >= filter {
-				if err := d.Report(&rawExpr, pq.outStream); err != nil {
+				if err := d.Report("promql/parser", &rawExpr, pq.outStream); err != nil {
 					return false, err
 				}
 				ok = false
@@ -86,7 +87,7 @@ func (pq *PromQLinter) Execute(
 
 		for _, d := range ds.Slice() {
 			if d.Level() >= filter {
-				if err := d.Report(&rawExpr, pq.outStream); err != nil {
+				if err := d.Report(p.Name(), &rawExpr, pq.outStream); err != nil {
 					return false, err
 				}
 				ok = false
@@ -117,5 +118,12 @@ func WithPlugin(plugin PromQLinterPlugin) PromQLinterOption {
 func WithOutStream(out io.Writer) PromQLinterOption {
 	return func(pq *PromQLinter) {
 		pq.outStream = out
+	}
+}
+
+// WithANSIColored sets the colored flag to the linter.
+func WithANSIColored(colored bool) PromQLinterOption {
+	return func(pq *PromQLinter) {
+		pq.colored = colored
 	}
 }

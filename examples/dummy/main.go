@@ -41,16 +41,19 @@ func (*samplePlugin) Execute(expr parser.Expr) (linter.Diagnostics, error) {
 		linter.DiagnosticLevelInfo,
 		parser.PositionRange{},
 		"foo",
+		true,
 	))
 	ds.Add(linter.NewDiagnostic(
 		linter.DiagnosticLevelWarning,
 		parser.PositionRange{},
 		"bar",
+		true,
 	))
 	ds.Add(linter.NewDiagnostic(
 		linter.DiagnosticLevelError,
 		parser.PositionRange{},
 		"baz",
+		true,
 	))
 
 	return ds, nil

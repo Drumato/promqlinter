@@ -44,7 +44,8 @@ type LabelName string
 type LabelValuePattern string
 
 type deniedLabel struct {
-	labels map[LabelName]LabelValuePattern
+	labels  map[LabelName]LabelValuePattern
+	colored bool
 }
 
 // Execute implements linter.PromQLinterPlugin
@@ -76,6 +77,7 @@ func (d *deniedLabel) Execute(expr parser.Expr) (linter.Diagnostics, error) {
 						linter.DiagnosticLevelError,
 						node.PosRange,
 						msg,
+						d.colored,
 					))
 				}
 			}
@@ -98,9 +100,10 @@ func (*deniedLabel) Name() string {
 // NewDeniedLabelPlugin creates a denied-labels plugin.
 func NewDeniedLabelPlugin(
 	deniedLabels string,
+	colored bool,
 ) linter.PromQLinterPlugin {
 	labels := splitDeniedLabelsFlag(deniedLabels)
-	return &deniedLabel{labels}
+	return &deniedLabel{labels, colored}
 }
 
 func splitDeniedLabelsFlag(value string) map[LabelName]LabelValuePattern {

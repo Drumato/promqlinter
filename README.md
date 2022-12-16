@@ -2,8 +2,14 @@
 
 A PromQL parser/type-checker/linter in GitHub Actions/CLI
 
+![img1.png](doc/example.png)
+
+```
+
 ## Features
 
+- syntax/type check with [prometheus/prometheus/promql/parser](https://pkg.go.dev/github.com/prometheus/prometheus/promql/parser#Inspect)
+- Use the default lint rules in GitHub Actions
 - A consistent framework to **"Build Your Own PromQL Linter"**
   - See [Build Your Own PromQL Linter](doc/custom-linter.md)
 

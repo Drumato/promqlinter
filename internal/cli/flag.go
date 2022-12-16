@@ -31,6 +31,8 @@ var (
 	GlobalRecursiveRO             bool
 	GlobalDiagnosticLevelFilterRO string
 	GlobalDeniedLabelsRO          string
+	GlobalUseAnsiColorStringRO    string
+	GlobalUseAnsiColorRO          bool
 )
 
 func defineCLIFlags(c *cobra.Command) {
@@ -64,6 +66,14 @@ func defineCLIFlags(c *cobra.Command) {
 		"r",
 		false,
 		"determine whether the manifest search process should be recursive",
+	)
+
+	c.Flags().StringVarP(
+		&GlobalUseAnsiColorStringRO,
+		"colored",
+		"c",
+		"true",
+		"determine whether the promqlinter's reports are colored with ANSI codes",
 	)
 
 }

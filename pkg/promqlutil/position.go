@@ -33,6 +33,7 @@ import (
 type Source2dPosition struct {
 	Line   int
 	Column int
+	Length int
 }
 
 // String implements fmt.Stringer
@@ -62,5 +63,6 @@ func ConvertPosTo2d(
 	return &Source2dPosition{
 		Line:   lineIdx + 1,
 		Column: offsetFromLineStart,
+		Length: int(source.End) - int(source.Start),
 	}
 }

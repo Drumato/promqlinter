@@ -30,6 +30,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/Drumato/promqlinter/pkg/linter"
@@ -40,6 +41,11 @@ import (
 )
 
 func run(cmd *cobra.Command, args []string) error {
+	if ok, _ := strconv.ParseBool(GlobalUseAnsiColorStringRO); ok {
+		GlobalUseAnsiColorRO = true
+	} else {
+		GlobalUseAnsiColorRO = false
+	}
 	filter, err := determineLevelFilter(GlobalDiagnosticLevelFilterRO)
 	if err != nil {
 		return err
@@ -55,8 +61,9 @@ func run(cmd *cobra.Command, args []string) error {
 // runExprFromStdinMode runs the linter process with the given input from stdin.
 func runExprFromStdinMode(cmd *cobra.Command, args []string, filter linter.DiagnosticLevel) error {
 	l := linter.New(
-		linter.WithPlugins(plugin.Defaults(GlobalDeniedLabelsRO)...),
+		linter.WithPlugins(plugin.Defaults(GlobalDeniedLabelsRO, GlobalUseAnsiColorRO)...),
 		linter.WithOutStream(os.Stdout),
+		linter.WithANSIColored(GlobalUseAnsiColorRO),
 	)
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -87,7 +94,7 @@ func runK8sManifestsMode(
 ) error {
 	l := linter.New(
 		linter.WithOutStream(os.Stdout),
-		linter.WithPlugins(plugin.Defaults(GlobalDeniedLabelsRO)...),
+		linter.WithPlugins(plugin.Defaults(GlobalDeniedLabelsRO, GlobalUseAnsiColorRO)...),
 	)
 
 	var manifests []string
