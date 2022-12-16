@@ -2,6 +2,11 @@
 
 A PromQL parser/type-checker/linter in GitHub Actions/CLI
 
+## Features
+
+- A consistent framework to **"Build Your Own PromQL Linter"**
+  - See [Build Your Own PromQL Linter](doc/custom-linter.md)
+
 ## GitHub Actions
 
 See [Using promqlinter in GitHub Actions](doc/github-actions.md).
