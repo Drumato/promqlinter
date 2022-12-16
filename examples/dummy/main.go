@@ -37,23 +37,17 @@ type samplePlugin struct{}
 // Execute implements linter.PromQLinterPlugin
 func (*samplePlugin) Execute(expr parser.Expr) (linter.Diagnostics, error) {
 	ds := linter.NewDiagnostics()
-	ds.Add(linter.NewDiagnostic(
-		linter.DiagnosticLevelInfo,
+	ds.Add(linter.ColoredInfoDiagnostic(
 		parser.PositionRange{},
 		"foo",
-		true,
 	))
-	ds.Add(linter.NewDiagnostic(
-		linter.DiagnosticLevelWarning,
+	ds.Add(linter.ColoredInfoDiagnostic(
 		parser.PositionRange{},
 		"bar",
-		true,
 	))
-	ds.Add(linter.NewDiagnostic(
-		linter.DiagnosticLevelError,
+	ds.Add(linter.ColoredInfoDiagnostic(
 		parser.PositionRange{},
 		"baz",
-		true,
 	))
 
 	return ds, nil
@@ -71,13 +65,13 @@ func main() {
 		linter.WithPlugin(&samplePlugin{}),
 		linter.WithOutStream(os.Stdout),
 	)
-	ok, err := l.Execute("http_requests_total", linter.DiagnosticLevelWarning)
+	result, err := l.Execute("http_requests_total", linter.DiagnosticLevelWarning)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		os.Exit(1)
 	}
 
-	if !ok {
+	if result.Failed() {
 		os.Exit(1)
 	}
 }

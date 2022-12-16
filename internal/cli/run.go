@@ -40,11 +40,15 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+var (
+	promqlinterColorMode linter.PromQLinterColorMode
+)
+
 func run(cmd *cobra.Command, args []string) error {
 	if ok, _ := strconv.ParseBool(GlobalUseAnsiColorStringRO); ok {
-		GlobalUseAnsiColorRO = true
+		promqlinterColorMode = linter.PromQLinterColorModeEnable
 	} else {
-		GlobalUseAnsiColorRO = false
+		promqlinterColorMode = linter.PromQLinterColorModeDisable
 	}
 	filter, err := determineLevelFilter(GlobalDiagnosticLevelFilterRO)
 	if err != nil {
@@ -61,9 +65,9 @@ func run(cmd *cobra.Command, args []string) error {
 // runExprFromStdinMode runs the linter process with the given input from stdin.
 func runExprFromStdinMode(cmd *cobra.Command, args []string, filter linter.DiagnosticLevel) error {
 	l := linter.New(
-		linter.WithPlugins(plugin.Defaults(GlobalDeniedLabelsRO, GlobalUseAnsiColorRO)...),
+		linter.WithPlugins(plugin.Defaults(GlobalDeniedLabelsRO, promqlinterColorMode)...),
 		linter.WithOutStream(os.Stdout),
-		linter.WithANSIColored(GlobalUseAnsiColorRO),
+		linter.WithANSIColorMode(promqlinterColorMode),
 	)
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -74,11 +78,11 @@ func runExprFromStdinMode(cmd *cobra.Command, args []string, filter linter.Diagn
 	}
 	expr := strings.Join(lines, "\n")
 
-	ok, err := l.Execute(expr, filter)
+	result, err := l.Execute(expr, filter)
 	if err != nil {
 		return err
 	}
-	if !ok {
+	if result.Failed() {
 		return fmt.Errorf("some of linter plugins detects the filtered rules")
 	}
 
@@ -94,7 +98,7 @@ func runK8sManifestsMode(
 ) error {
 	l := linter.New(
 		linter.WithOutStream(os.Stdout),
-		linter.WithPlugins(plugin.Defaults(GlobalDeniedLabelsRO, GlobalUseAnsiColorRO)...),
+		linter.WithPlugins(plugin.Defaults(GlobalDeniedLabelsRO, promqlinterColorMode)...),
 	)
 
 	var manifests []string
@@ -128,11 +132,11 @@ func runK8sManifestsMode(
 
 		for _, rg := range ruleManifest.Spec.Groups {
 			for _, rule := range rg.Rules {
-				ok, err := l.Execute(rule.Expr.StrVal, filter)
+				result, err := l.Execute(rule.Expr.StrVal, filter)
 				if err != nil {
 					return err
 				}
-				if !ok {
+				if result.Failed() {
 					return fmt.Errorf("some of linter plugins detects the filtered rules")
 				}
 			}

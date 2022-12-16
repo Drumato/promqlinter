@@ -29,9 +29,9 @@ import "github.com/Drumato/promqlinter/pkg/linter"
 // Defaults returns the set of the default linter plugin.
 func Defaults(
 	deniedLabels string,
-	colored bool,
+	color linter.PromQLinterColorMode,
 ) []linter.PromQLinterPlugin {
 	return []linter.PromQLinterPlugin{
-		NewDeniedLabelPlugin(deniedLabels, colored),
+		NewDeniedLabelPlugin(deniedLabels, color),
 	}
 }

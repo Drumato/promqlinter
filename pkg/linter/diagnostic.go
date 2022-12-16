@@ -75,7 +75,7 @@ type diagnostic struct {
 	level    DiagnosticLevel
 	position parser.PositionRange
 	message  string
-	colored  bool
+	color    PromQLinterColorMode
 }
 
 // Level implements Diagnostic.
@@ -91,7 +91,7 @@ func (d *diagnostic) Report(
 ) error {
 	pos2d := promqlutil.ConvertPosTo2d(rawExpr, d.position)
 
-	if d.colored {
+	if d.color == PromQLinterColorModeEnable {
 		return d.coloredReport(pluginName, rawExpr, out, pos2d)
 	}
 
@@ -135,7 +135,7 @@ func (d *diagnostic) coloredReport(
 	// prefix <- "L1| "
 	prefix := fmt.Sprintf("L%d| ", pos2d.Line)
 
-	errSubExpr := (*rawExpr)[int(d.position.Start):int(d.position.End)]
+	errSubExpr := getSpecifiedSubExpr(rawExpr, &d.position)
 
 	// line <- "L1| <the contents at the line>"
 	line := strings.Split(*rawExpr, "\n")[pos2d.Line-1]
@@ -156,51 +156,92 @@ func (d *diagnostic) coloredReport(
 	return nil
 }
 
-func (d *diagnostic) lineMessage(
+func getSpecifiedSubExpr(
 	rawExpr *string,
-	pos2d *promqlutil.Source2dPosition,
+	source *parser.PositionRange,
 ) string {
-	// prefix <- "L1| "
-	prefix := fmt.Sprintf("L%d| ", pos2d.Line)
-
-	// line <- "L1| <the contents at the line>"
-	line := strings.Split(*rawExpr, "\n")[pos2d.Line-1]
-	if !d.colored {
-		return fmt.Sprintf("%s%s", prefix, line)
-	}
-
-	var coloredErrSubExpr string
-	errSubExpr := line[pos2d.Column-1 : pos2d.Column-1+pos2d.Length]
-
-	switch d.level {
-
-	case DiagnosticLevelInfo:
-		coloredErrSubExpr = color.HiBlueString("%s", errSubExpr)
-	case DiagnosticLevelWarning:
-		coloredErrSubExpr = color.HiYellowString("%s", errSubExpr)
-	case DiagnosticLevelError:
-		coloredErrSubExpr = color.HiRedString("%s", errSubExpr)
-	default:
-		panic("unreachable")
-	}
-
-	line = strings.ReplaceAll(line, line[pos2d.Line-1:pos2d.Length], coloredErrSubExpr)
-	return fmt.Sprintf("%s%s", prefix, line)
+	return (*rawExpr)[int(source.Start):int(source.End)]
 }
 
-// NewDiagnostic creates a new default diagnostic.
-func NewDiagnostic(
-	level DiagnosticLevel,
+func InfoDiagnostic(
 	position parser.PositionRange,
 	message string,
-	colored bool,
+	color PromQLinterColorMode,
 ) *diagnostic {
 	return &diagnostic{
-		level,
-		position,
-		message,
-		colored,
+		level:    DiagnosticLevelInfo,
+		position: position,
+		message:  message,
+		color:    color,
 	}
+}
+
+func WarningDiagnostic(
+	position parser.PositionRange,
+	message string,
+	color PromQLinterColorMode,
+) *diagnostic {
+	return &diagnostic{
+		level:    DiagnosticLevelWarning,
+		position: position,
+		message:  message,
+		color:    color,
+	}
+}
+
+func ErrorDiagnostic(
+	position parser.PositionRange,
+	message string,
+	color PromQLinterColorMode,
+) *diagnostic {
+	return &diagnostic{
+		level:    DiagnosticLevelError,
+		position: position,
+		message:  message,
+		color:    color,
+	}
+}
+
+func ColoredInfoDiagnostic(
+	position parser.PositionRange,
+	message string,
+) *diagnostic {
+	return InfoDiagnostic(position, message, PromQLinterColorModeEnable)
+}
+
+func ColoredWarningDiagnostic(
+	position parser.PositionRange,
+	message string,
+) *diagnostic {
+	return WarningDiagnostic(position, message, PromQLinterColorModeEnable)
+}
+
+func ColoredErrorDiagnostic(
+	position parser.PositionRange,
+	message string,
+) *diagnostic {
+	return ErrorDiagnostic(position, message, PromQLinterColorModeEnable)
+}
+
+func NoncoloredInfoDiagnostic(
+	position parser.PositionRange,
+	message string,
+) *diagnostic {
+	return InfoDiagnostic(position, message, PromQLinterColorModeDisable)
+}
+
+func NoncoloredWarningDiagnostic(
+	position parser.PositionRange,
+	message string,
+) *diagnostic {
+	return WarningDiagnostic(position, message, PromQLinterColorModeDisable)
+}
+
+func NoncoloredErrorDiagnostic(
+	position parser.PositionRange,
+	message string,
+) *diagnostic {
+	return ErrorDiagnostic(position, message, PromQLinterColorModeDisable)
 }
 
 // DiagnosticLevel represents the level of a diagnostic.
@@ -246,7 +287,7 @@ func (d DiagnosticLevel) coloredString() string {
 
 func convertParseErrorToDiagnostics(
 	err error,
-	colored bool,
+	color PromQLinterColorMode,
 ) Diagnostics {
 	if err == nil {
 		return nil
@@ -259,12 +300,12 @@ func convertParseErrorToDiagnostics(
 
 	ds := NewDiagnostics()
 	for _, e := range errs {
-		d := NewDiagnostic(
-			DiagnosticLevelError,
+		d := ErrorDiagnostic(
 			e.PositionRange,
 			e.Error(),
-			colored,
+			color,
 		)
+
 		ds.Add(d)
 	}
 

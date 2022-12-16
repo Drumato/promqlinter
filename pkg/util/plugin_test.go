@@ -21,58 +21,24 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+package util
 
-package cli
+import (
+	"io"
 
-import "github.com/spf13/cobra"
-
-var (
-	GlobalK8sManifestRO           string
-	GlobalRecursiveRO             bool
-	GlobalDiagnosticLevelFilterRO string
-	GlobalDeniedLabelsRO          string
-	GlobalUseAnsiColorStringRO    string
+	"github.com/Drumato/promqlinter/pkg/linter"
 )
 
-func defineCLIFlags(c *cobra.Command) {
-	c.Flags().StringVarP(
-		&GlobalDeniedLabelsRO,
-		"denied-labels",
-		"d",
-		"",
-		"the denied labels",
+func PluginTest(
+	rawExpr string,
+	p linter.PromQLinterPlugin,
+	out io.Writer,
+	level linter.DiagnosticLevel,
+) (linter.PromQLintResult, error) {
+	l := linter.New(
+		linter.WithPlugin(p),
+		linter.WithOutStream(out),
 	)
 
-	c.Flags().StringVarP(
-		&GlobalDiagnosticLevelFilterRO,
-		"level-filter",
-		"f",
-		"error",
-		"the diagnostic level filter(info/warning/error)",
-	)
-
-	c.Flags().StringVarP(
-		&GlobalK8sManifestRO,
-		"input-k8s-manifest",
-		"i",
-		"",
-		"the target PrometheusRule resource",
-	)
-
-	c.Flags().BoolVarP(
-		&GlobalRecursiveRO,
-		"recursive",
-		"r",
-		false,
-		"determine whether the manifest search process should be recursive",
-	)
-
-	c.Flags().StringVarP(
-		&GlobalUseAnsiColorStringRO,
-		"colored",
-		"c",
-		"true",
-		"determine whether the promqlinter's reports are colored with ANSI codes",
-	)
-
+	return l.Execute(rawExpr, level)
 }

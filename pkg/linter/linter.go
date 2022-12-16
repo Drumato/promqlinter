@@ -36,11 +36,18 @@ type PromQLinter struct {
 	outStream io.Writer
 
 	plugins []PromQLinterPlugin
-	colored bool
+	color   PromQLinterColorMode
 }
 
 // PromQLinterOption enables the initialization of the PromQLinter by FOP(Functional-Options-Pattern)
 type PromQLinterOption func(*PromQLinter)
+
+type PromQLinterColorMode uint
+
+const (
+	PromQLinterColorModeEnable PromQLinterColorMode = iota
+	PromQLinterColorModeDisable
+)
 
 // New creates a new PromQLinter.
 func New(options ...PromQLinterOption) *PromQLinter {
@@ -54,21 +61,32 @@ func New(options ...PromQLinterOption) *PromQLinter {
 	return pq
 }
 
+type PromQLintResult uint
+
+const (
+	PromQLintResultOK PromQLintResult = iota
+	PromQLintResultFailed
+)
+
+func (r PromQLintResult) Failed() bool {
+	return r == PromQLintResultFailed
+}
+
 // Execute starts the lint process.
 // the rawExpr parameter is a PromQL expression.
 // filter determines whether the reported diagnostics from plugin(s) are ignored.
 func (pq *PromQLinter) Execute(
 	rawExpr string,
 	filter DiagnosticLevel,
-) (bool, error) {
+) (PromQLintResult, error) {
 	ok := true
 	expr, err := parser.ParseExpr(rawExpr)
-	parserDs := convertParseErrorToDiagnostics(err, pq.colored)
+	parserDs := convertParseErrorToDiagnostics(err, pq.color)
 	if parserDs != nil {
 		for _, d := range parserDs.Slice() {
 			if d.Level() >= filter {
 				if err := d.Report("promql/parser", &rawExpr, pq.outStream); err != nil {
-					return false, err
+					return PromQLintResultFailed, err
 				}
 				ok = false
 			}
@@ -76,26 +94,26 @@ func (pq *PromQLinter) Execute(
 	}
 	// if any parse errors are found, we quickly quit the lint process.
 	if !ok {
-		return false, nil
+		return PromQLintResultFailed, nil
 	}
 
 	for _, p := range pq.plugins {
 		ds, err := p.Execute(expr)
 		if err != nil {
-			return false, err
+			return PromQLintResultFailed, err
 		}
 
 		for _, d := range ds.Slice() {
 			if d.Level() >= filter {
 				if err := d.Report(p.Name(), &rawExpr, pq.outStream); err != nil {
-					return false, err
+					return PromQLintResultFailed, err
 				}
 				ok = false
 			}
 		}
 	}
 
-	return ok, nil
+	return PromQLintResultOK, nil
 }
 
 // WithPlugins sets the set of the linter plugin to the linter.
@@ -121,9 +139,9 @@ func WithOutStream(out io.Writer) PromQLinterOption {
 	}
 }
 
-// WithANSIColored sets the colored flag to the linter.
-func WithANSIColored(colored bool) PromQLinterOption {
+// WithANSIColorMode sets the color mode to the linter.
+func WithANSIColorMode(mode PromQLinterColorMode) PromQLinterOption {
 	return func(pq *PromQLinter) {
-		pq.colored = colored
+		pq.color = mode
 	}
 }
