@@ -32,31 +32,50 @@ import (
 )
 
 // Diagnostics holds the set of the linter diagnostic.
-type Diagnostics struct {
+type Diagnostics interface {
+	Slice() []Diagnostic
+}
+
+type Diagnostic interface {
+	Level() DiagnosticLevel
+	Report(out io.Writer) error
+}
+
+type diagnostics struct {
 	items []Diagnostic
 }
 
 // NewDiagnostics creates a new Diagnostics.
-func NewDiagnostics() *Diagnostics {
-	return &Diagnostics{
+func NewDiagnostics() *diagnostics {
+	return &diagnostics{
 		items: make([]Diagnostic, 0),
 	}
 }
 
 // Add appends the given diagnostic to the set.
-func (ds *Diagnostics) Add(d Diagnostic) {
+func (ds *diagnostics) Add(d Diagnostic) {
 	ds.items = append(ds.items, d)
 }
 
-// Diagnostic is the detailed message from linter plugin from its rules.
-type Diagnostic struct {
+// Slice implements Diagnostics
+func (d *diagnostics) Slice() []Diagnostic {
+	return []Diagnostic(d.items)
+}
+
+// diagnostic is the detailed message from linter plugin from its rules.
+type diagnostic struct {
 	level    DiagnosticLevel
 	position parser.PositionRange
 	message  string
 }
 
 // Report outputs the diagnostic message to the given io.Writer.
-func (d *Diagnostic) Report(
+func (d *diagnostic) Level() DiagnosticLevel {
+	return d.level
+}
+
+// Report outputs the diagnostic message to the given io.Writer.
+func (d *diagnostic) Report(
 	out io.Writer,
 ) error {
 	_, err := fmt.Fprintf(out, "[%s] (%d..%d) %s\n", d.level.String(), d.position.Start, d.position.End, d.message)
@@ -68,8 +87,8 @@ func NewDiagnostic(
 	level DiagnosticLevel,
 	position parser.PositionRange,
 	message string,
-) Diagnostic {
-	return Diagnostic{level, position, message}
+) *diagnostic {
+	return &diagnostic{level, position, message}
 }
 
 // DiagnosticLevel represents the level of a diagnostic.

@@ -35,7 +35,7 @@ import (
 type samplePlugin struct{}
 
 // Execute implements linter.PromQLinterPlugin
-func (*samplePlugin) Execute(expr parser.Expr) (*linter.Diagnostics, error) {
+func (*samplePlugin) Execute(expr parser.Expr) (linter.Diagnostics, error) {
 	ds := linter.NewDiagnostics()
 	ds.Add(linter.NewDiagnostic(
 		linter.DiagnosticLevelInfo,

@@ -48,10 +48,12 @@ const (
 // NewCLI initializez the root application of promqlinter.
 func NewCLI() *cobra.Command {
 	c := &cobra.Command{
-		Use:     "promqlinter",
-		Short:   "A PromQL linter with CLI/GitHub Actions",
-		Example: cliExample,
-		RunE:    run,
+		Use:           "promqlinter",
+		Short:         "A PromQL linter with CLI/GitHub Actions",
+		Example:       cliExample,
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE:          run,
 	}
 
 	defineCLIFlags(c)

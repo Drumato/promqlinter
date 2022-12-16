@@ -26,38 +26,63 @@ package plugin
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/Drumato/promqlinter/pkg/linter"
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
-type DeniedLabelMatcher struct {
-	LabelName         string
-	LabelValuePattern string
-}
+const (
+	baseMetricNamePlaceholder = "__name__"
+)
+
+type LabelName string
+type LabelValuePattern string
 
 type deniedLabel struct {
-	labels []DeniedLabelMatcher
+	labels map[LabelName]LabelValuePattern
 }
 
 // Execute implements linter.PromQLinterPlugin
-func (*deniedLabel) Execute(expr parser.Expr) (*linter.Diagnostics, error) {
+func (d *deniedLabel) Execute(expr parser.Expr) (linter.Diagnostics, error) {
+	ds := linter.NewDiagnostics()
 	parser.Inspect(expr, func(n parser.Node, path []parser.Node) error {
 		switch node := n.(type) {
 		case *parser.VectorSelector:
 			for _, lm := range node.LabelMatchers {
-				fmt.Println(lm.Name, lm.Value)
+				if lm.Name == baseMetricNamePlaceholder {
+					continue
+				}
+
+				pattern, ok := d.labels[LabelName(lm.Name)]
+				if !ok {
+					continue
+				}
+
+				exp, err := regexp.Compile(string(pattern))
+				if err != nil {
+					return err
+				}
+
+				if exp.MatchString(lm.Value) {
+					msg := fmt.Sprintf("matched to the denied label rule `%s`", pattern)
+					ds.Add(linter.NewDiagnostic(
+						linter.DiagnosticLevelError,
+						node.PosRange,
+						msg,
+					))
+				}
 			}
 
 			return nil
 		default:
-			// traverseall the non-nil children.
+			// traverse all the non-nil children.
 			return nil
 		}
 	})
 
-	return linter.NewDiagnostics(), nil
+	return ds, nil
 }
 
 // Name implements linter.PromQLinterPlugin
@@ -72,8 +97,8 @@ func NewDeniedLabelPlugin(
 	return &deniedLabel{labels}
 }
 
-func splitDeniedLabelsFlag(value string) []DeniedLabelMatcher {
-	matchers := []DeniedLabelMatcher{}
+func splitDeniedLabelsFlag(value string) map[LabelName]LabelValuePattern {
+	matchers := map[LabelName]LabelValuePattern{}
 
 	if value == "" {
 		return matchers
@@ -82,10 +107,8 @@ func splitDeniedLabelsFlag(value string) []DeniedLabelMatcher {
 	labels := strings.Split(value, ",")
 	for _, label := range labels {
 		pair := strings.Split(label, " %PAIR% ")
-		matchers = append(matchers, DeniedLabelMatcher{
-			LabelName:         pair[0],
-			LabelValuePattern: pair[1],
-		})
+		name := LabelName(pair[0])
+		matchers[name] = LabelValuePattern(pair[1])
 	}
 
 	return matchers

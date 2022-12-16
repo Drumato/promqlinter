@@ -1,3 +1,0 @@
-sum by (job) (
-  rate(http_requests_total[5m])
-)

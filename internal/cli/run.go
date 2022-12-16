@@ -54,7 +54,10 @@ func run(cmd *cobra.Command, args []string) error {
 
 // runExprFromStdinMode runs the linter process with the given input from stdin.
 func runExprFromStdinMode(cmd *cobra.Command, args []string, filter linter.DiagnosticLevel) error {
-	l := linter.New(linter.WithPlugins(plugin.Defaults(GlobalDeniedLabelsRO)...))
+	l := linter.New(
+		linter.WithPlugins(plugin.Defaults(GlobalDeniedLabelsRO)...),
+		linter.WithOutStream(os.Stdout),
+	)
 
 	scanner := bufio.NewScanner(os.Stdin)
 

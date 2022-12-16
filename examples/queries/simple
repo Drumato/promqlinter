@@ -1,0 +1,1 @@
+http_requests_total{job="prometheus",group="canary"}[5m]

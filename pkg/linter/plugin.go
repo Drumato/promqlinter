@@ -32,5 +32,5 @@ type PromQLinterPlugin interface {
 	// the name is used in the reporting message from the linter.
 	Name() string
 	// Execute lints the PromQL expression.
-	Execute(expr parser.Expr) (*Diagnostics, error)
+	Execute(expr parser.Expr) (Diagnostics, error)
 }
