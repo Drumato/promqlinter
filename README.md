@@ -4,6 +4,12 @@ A PromQL parser/type-checker/linter in GitHub Actions/CLI
 
 ![img1.png](doc/example.png)
 
+## Installation
+
+```bash
+$ go install github.com/Drumato/promqlinter@main
+```
+
 ## Features
 
 - syntax/type check with [prometheus/prometheus/promql/parser](https://pkg.go.dev/github.com/prometheus/prometheus/promql/parser)

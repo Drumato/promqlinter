@@ -15,4 +15,4 @@ vet:
 
 .PHONY: build
 build:
-	go build -o bin/promqlinter ./cmd/promqlinter
+	go build -o bin/promqlinter
